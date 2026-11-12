@@ -1,10 +1,14 @@
 resource "aws_s3_bucket" "main" {
+  #checkov:skip=CKV_AWS_18:Access logging not required for a single-user state bucket
+  #checkov:skip=CKV_AWS_144:Cross-region replication not required for this project
+  #checkov:skip=CKV2_AWS_62:No consumers for S3 event notifications
   bucket = var.bucket_name
 
   lifecycle {
     prevent_destroy = true
   }
 }
+
 
 resource "aws_s3_bucket_versioning" "main" {
   bucket = aws_s3_bucket.main.id
@@ -19,8 +23,9 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "main" {
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      sse_algorithm = "aws:kms"
     }
+    bucket_key_enabled = true
   }
 }
 
@@ -53,4 +58,24 @@ resource "aws_s3_bucket_policy" "main" {
       Condition = { Bool = { "aws:SecureTransport" = "false" } }
     }]
   })
+}
+
+
+resource "aws_s3_bucket_lifecycle_configuration" "main" {
+  bucket = aws_s3_bucket.main.id
+
+  rule {
+    id     = "state-housekeeping"
+    status = "Enabled"
+
+    filter {}
+
+    noncurrent_version_expiration {
+      noncurrent_days = 90
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
 }

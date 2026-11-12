@@ -35,3 +35,10 @@ variable "public_subnet_cidr" {
   type        = string
   description = "description"
 }
+
+
+variable "aws_region" {
+  default     = "eu-central-1"
+  type        = string
+  description = "description"
+}
